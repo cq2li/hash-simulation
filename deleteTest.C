@@ -57,8 +57,9 @@ class HashTable {
     // insert an element with key x
     void insert(int x) {
       int hx = ::hash(x, m);
-      full++;
-      for (int i = hx; ;i++) {
+      int search_max = m; // GL: cap search in wrap-around
+      full++; // GL: True under stable load
+      for (int i = hx; search_max > 0 ;i++) {
         if (t[i] == EMPTY) {
           t[i] = x;
           empty--;
@@ -68,30 +69,62 @@ class HashTable {
           t[i] = x;
           return;
         }
+        // GL
+        search_max--;
+        if (i == m - 1) i = -1;
+        // GL
+
       } 
     }
 
     void remove(int x) {
       int i,j;
+      int search_max = m;
       int hx = ::hash(x, m);
       full--;
       // find the element
-      for (i = hx; ;  i++) {
+      for (i = hx; search_max > 0;  i++) {
         if (t[i] == x) break;
         Assert1(t[i] != EMPTY);
+        // GL
+        search_max--;
+        if (i == m - 1) i = -1;
+        // GL
       }
 
       t[i] = MARKED; // provisorically mark as deleted
-
+      int MARK_idx = i; // GL: track slot for x
+      
       // look to the right
-      int hy = 2*m; // smallest hash function value encountered
-      for (j = i+1; t[j] != EMPTY;  j++) {
+      /*
+      int hy = 2*m; // smallest hash function value encountered GL: this should be fine unchanged
+      for (j = i+1; t[j] != EMPTY && max_search > 0;  j++) {
         if (t[j] != MARKED) {
           int hj = ::hash(t[j], m);
           if (hj < hy) hy = hj;
         }
+        max_search--;
+        if (j == m - 1) j = -1;
       }
-
+      */   
+      // GL
+      int hy = 2*m; // smallest hash function value encountered GL: this should be fine unchanged
+      for (j = i+1; t[j] != EMPTY && j < m; j++) {
+        if (t[j] != MARKED) {
+          int hj = ::hash(t[j], m);
+          if (hj > j) return; //GL: if a hash of a key is after the store, that means we looped all the way around and so no tombstone between hx and mark_idx can be deleted
+          if (hj < hy) hy = hj;
+        }
+      }
+      if (j == m) j == 0; //GL: looping around since the termination wasn't due to empty
+      for (j = i+1; t[j] != EMPTY && j < MARK_idx; j++) {
+        if (t[j] != MARKED) {
+          int hj = ::hash(t[j], m);
+          if (hj > j && hj <= hx) return; //GL: if a hash of a key is before or on the hash, it wraps so we cannot convert tombstones to empty from [hx,MARK_idx]
+          if (hj < hy && hj > j) hy = hj; //GL: we don't care if h <= j since the search path for t[j] doesn't go through [hx, MARK_idx]
+        }
+      }
+      // GL
       // look to the left
       for (j = i;  j >= hx; j--) {
         if (t[j]==MARKED) {
@@ -110,9 +143,18 @@ class HashTable {
     // otherwise # of visited cells
     int find(int x) {
       int hx = ::hash(x, m);
-      for (int i=hx;  t[i] != EMPTY;  i++) {
+      int searched = 0;
+      int i;
+      for (i=hx;  t[i] != EMPTY && i < m;  i++) {
         if (t[i] == x) return i-hx+1; 
-      }  
+      }
+      if (i == m) {
+        searched = i - hx + 1;
+        i = 0;
+      }
+      for (i = 0; t[i] != EMPTY && i < hx; i++) {
+        if (t[i] == x) return i+1+searched;
+      }
       return 0;
     }
 
@@ -174,21 +216,25 @@ int main(int argc, char **argv) {
   long long int count;
   for (;  i < Kmax+n;  i++){
     //ht.print();
-    ht.remove(i-n); 
-    ht.insert(i); 
+    // ht.remove(i-n); //GL: moved to end, bounds in summary statistics is wrong
+    // ht.insert(i); 
     if (i-n == K || i-n == Kmax-1) {
       cout << m << " " << n << " " << i-n << " ";
       cout << (double)(ht.empty-ht.m)/ht.m << " "; // fraction of free cells
       count = 0;
-      for (j=i-n;  j<i; j++) count += ht.find(j);
+      for (j=i-n; j < i; j++) count += ht.find(j); 
       cout << (double)count/n << " "; // avg. successful search time
       count=0;
       for (int k=0; k<m;  k++) {
-        count++;
-        for (j=k;  ht.t[j] != EMPTY;  j++) count++;  
+        // count++;
+        for (j=k;  ht.t[j] != EMPTY;  j++) count++;
+        if (j == m) j = 0;
+        for (; j < k && ht.t[j] != EMPTY; j++) count++;
       }
       cout <<  (double)count/m << endl; //  avg. failed search time
       K = K*2;
     }
+    ht.remove(i-n); //GL: perform operations after summary statistics have been calculated
+    ht.insert(i); 
   }
 }
