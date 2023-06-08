@@ -39,94 +39,94 @@ void printEntry(int x) {
 class HashTable {
   // -1 = empty
   // -2 =
-public:
-  // a deleted entry has value INT_MAX
-  int *t;
-  int m; // table size
-  int full; // number of valid entries
-  int empty; // number of empty cells
-  HashTable(int vm) {
-    m = vm;
-    full = 0;
-    empty = 2*m;
-    t = new int[2*m];
-    for (int i = 0;  i < 2*m;  i++) t[i] = EMPTY;
-  }
-  ~HashTable() { delete [] t; }
-
-  // insert an element with key x
-  void insert(int x) {
-    int hx = hash(x, m);
-    full++;
-    for (int i = hx; ;i++) {
-      if (t[i] == EMPTY) {
-	t[i] = x;
-        empty--;
-	return;
-      }
-      if (t[i] == MARKED) {
-	t[i] = x;
-	return;
-      }
-    } 
-  }
-
-  void remove(int x) {
-    int i,j;
-    int hx = hash(x, m);
-    full--;
-    // find the element
-    for (i = hx; ;  i++) {
-      if (t[i] == x) break;
-      Assert1(t[i] != EMPTY);
+  public:
+    // a deleted entry has value INT_MAX
+    int *t;
+    int m; // table size
+    int full; // number of valid entries
+    int empty; // number of empty cells
+    HashTable(int vm) {
+      m = vm;
+      full = 0;
+      empty = 2*m;
+      t = new int[2*m];
+      for (int i = 0;  i < 2*m;  i++) t[i] = EMPTY;
     }
-    
-    t[i] = MARKED; // provisorically mark as deleted
+    ~HashTable() { delete [] t; }
 
-    // look to the right
-    int hy = 2*m; // smallest hash function value encountered
-    for (j = i+1; t[j] != EMPTY;  j++) {
-      if (t[j] != MARKED) {
-	int hj = hash(t[j], m);
-	if (hj < hy) hy = hj;
+    // insert an element with key x
+    void insert(int x) {
+      int hx = ::hash(x, m);
+      full++;
+      for (int i = hx; ;i++) {
+        if (t[i] == EMPTY) {
+          t[i] = x;
+          empty--;
+          return;
+        }
+        if (t[i] == MARKED) {
+          t[i] = x;
+          return;
+        }
+      } 
+    }
+
+    void remove(int x) {
+      int i,j;
+      int hx = ::hash(x, m);
+      full--;
+      // find the element
+      for (i = hx; ;  i++) {
+        if (t[i] == x) break;
+        Assert1(t[i] != EMPTY);
+      }
+
+      t[i] = MARKED; // provisorically mark as deleted
+
+      // look to the right
+      int hy = 2*m; // smallest hash function value encountered
+      for (j = i+1; t[j] != EMPTY;  j++) {
+        if (t[j] != MARKED) {
+          int hj = ::hash(t[j], m);
+          if (hj < hy) hy = hj;
+        }
+      }
+
+      // look to the left
+      for (j = i;  j >= hx; j--) {
+        if (t[j]==MARKED) {
+          if (hy>j) {
+            t[j] = EMPTY; // remove unnecessary marks
+            empty++;
+          }
+        } else {
+          int hj = ::hash(t[j], m);
+          if (hj < hy) hy = hj;
+        }
       }
     }
-    
-    // look to the left
-    for (j = i;  j >= hx; j--) {
-      if (t[j]==MARKED) {
-	if (hy>j) {
-	  t[j] = EMPTY; // remove unnecessary marks
-	  empty++;
-	}
-      } else {
-	int hj = hash(t[j], m);
-	if (hj < hy) hy = hj;
+
+    // 0 if not present
+    // otherwise # of visited cells
+    int find(int x) {
+      int hx = ::hash(x, m);
+      for (int i=hx;  t[i] != EMPTY;  i++) {
+        if (t[i] == x) return i-hx+1; 
+      }  
+      return 0;
+    }
+
+    void print() {
+      int i;
+      for (i=0;  i<m;  i++) {
+        printEntry(t[i]);
+      }  
+      while (t[i] != EMPTY) {
+        printEntry(t[i]);
+        i++;
       }
+      cout << endl;
     }
-  }
-
-  // 0 if not present
-  // otherwise # of visited cells
-  int find(int x) {
-    int hx = hash(x, m);
-    for (int i=hx;  t[i] != EMPTY;  i++) {
-      if (t[i] == x) return i-hx+1; 
-    }  
-    return 0;
-  }
-
-  void print() {
-    int i;
-    for (i=0;  i<m;  i++) {
-      printEntry(t[i]);
-    }  
-    while (t[i] != EMPTY) {
-      printEntry(t[i]);
-      i++;
-    }
-    cout << endl;
-  }
 };
 
 
@@ -184,8 +184,8 @@ int main(int argc, char **argv) {
       cout << (double)count/n << " "; // avg. successful search time
       count=0;
       for (int k=0; k<m;  k++) {
-	count++;
-	for (j=k;  ht.t[j] != EMPTY;  j++) count++;  
+        count++;
+        for (j=k;  ht.t[j] != EMPTY;  j++) count++;  
       }
       cout <<  (double)count/m << endl; //  avg. failed search time
       K = K*2;
