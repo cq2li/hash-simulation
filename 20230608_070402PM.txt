@@ -1,6 +1,6 @@
 Reconcile after implementing wrap-around
 #m=1000000, n=800000, Kmax=80000000
-# m n K freeFraction successfull unsuccessfull
+m n K freeFraction successfull unsuccessfull
 1000000 800000 1 0.2 2.99313 11.8985
 1000000 800000 2 0.199999 2.9932 11.901
 1000000 800000 4 0.199998 2.99323 11.901

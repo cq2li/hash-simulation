@@ -234,28 +234,22 @@ int main(int argc, char **argv) {
   vector<int> decisionTable;
   size_t total_inserts = ht.fillDecisionTable(&decisionTable, m, Kmax, w);
   size_t total_iter = decisionTable.size();
-  cout << "# m=" << m << ", E[load]=(w/(1+w))=" << w/(1+w) << ", Kmax(sim. dels.)=" << Kmax << endl;
-  cout << "# total ops: " << total_iter << endl;
-  cout << "#m n K freeFraction successfull unsuccessfull load" << endl;
+  cout << "# m=" << m << ", E[load]=(w/(1+w))=" << (double)w/(1+w) << ", Kmax(sim. dels.)=" << Kmax << endl;
+  // cout << "# total ops: " << total_iter << endl;
+  cout << "#m n K freeFraction successfull unsuccessfull" << endl;
   hashValueTable = new int[total_inserts];
   for (int i = 0;  i < total_inserts;  i++) hashValueTable[i]=randomInt(m);
   
   Debug2(validate(ht, 1, 0));
   Debug3(cout << "initialized" << endl);
   int i,j;
-  // for (i = 0; i < n;  i++) {
-  //   ht.insert(i);
-  //   Debug3(ht.print());
-  //   Debug2(validate(ht, 0, i));
-  // }
   
+  int output_start = int(m*(double)w*(1+w));
   int K = 1;
   long long int count;
-  // double avg_fill = 0;
-  // size_t interval_length = 0;
   for (i = 0;  i < total_iter;  i++){
     //ht.print();
-    if (i == K || i == total_iter - 1) {
+    if (i - output_start == K || i == total_iter - 1) {
       cout << m << " " << (double)(to_insert - to_delete)/m << " " << i << " ";
       cout << (double)(ht.empty-ht.m)/ht.m << " "; // fraction of free cells
       count = 0;
@@ -269,16 +263,11 @@ int main(int argc, char **argv) {
         for (; j < k && ht.t[j] != EMPTY; j++) count++;
       }
       cout <<  (double)count/m << endl; //  avg. failed search time
-      // cout << avg_fill/m << endl; // avg load excludig tombstones 
       K = K*2;
-      // interval_length = 0;
-      // avg_fill = 0;
     }
-    // interval_length++;
     if (decisionTable[i] == 1) {
       ht.insert(to_insert);
       to_insert++;
-      // avg_fill += (to_insert - to_delete - avg_fill) / interval_length;
     } else {
       ht.remove(to_delete); //GL: perform operations after summary statistics have been calculated
       to_delete++;
