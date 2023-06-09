@@ -236,7 +236,7 @@ int main(int argc, char **argv) {
   size_t total_iter = decisionTable.size();
   cout << "# m=" << m << ", E[load]=(w/(1+w))=" << (double)w/(1+w) << ", Kmax(sim. dels.)=" << Kmax << endl;
   // cout << "# total ops: " << total_iter << endl;
-  cout << "#m n K freeFraction successfull unsuccessfull E[Load]" << endl;
+  cout << "#m n K freeFraction successfull unsuccessfull E[Load] w" << endl;
   hashValueTable = new int[total_inserts];
   for (int i = 0;  i < total_inserts;  i++) hashValueTable[i]=randomInt(m);
   
@@ -248,8 +248,8 @@ int main(int argc, char **argv) {
   long long int count;
   for (i = 0;  i < total_iter;  i++){
     //ht.print();
-    if (i == K || i == total_iter - 1) {
-      cout << m << " " << (double)(to_insert - to_delete)/m << " " << i << " ";
+    if (to_delete == K || i == total_iter - 1) {
+      cout << m << " " << (double)(to_insert - to_delete)/m << " " << to_delete << " ";
       cout << (double)(ht.empty-ht.m)/ht.m << " "; // fraction of free cells
       count = 0;
       for (j=to_delete; j < to_insert; j++) count += ht.find(j); 
@@ -262,7 +262,7 @@ int main(int argc, char **argv) {
         for (; j < k && ht.t[j] != EMPTY; j++) count++;
       }
       cout <<  (double)count/m << " "; //  avg. failed search time
-      cout <<  (double)w/(1+w) << endl; //  avg. failed search time
+      cout <<  (double)w/(1+w) << " " << w << endl; //  avg. failed search time
       K = K*2;
     }
     if (decisionTable[i] == 1) {
