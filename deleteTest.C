@@ -244,12 +244,11 @@ int main(int argc, char **argv) {
   Debug3(cout << "initialized" << endl);
   int i,j;
   
-  int output_start = int(m*(double)w*(1+w));
   int K = 1;
   long long int count;
   for (i = 0;  i < total_iter;  i++){
     //ht.print();
-    if (i - output_start == K || i == total_iter - 1) {
+    if (i == K || i == total_iter - 1) {
       cout << m << " " << (double)(to_insert - to_delete)/m << " " << i << " ";
       cout << (double)(ht.empty-ht.m)/ht.m << " "; // fraction of free cells
       count = 0;
