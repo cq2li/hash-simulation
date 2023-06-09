@@ -10,6 +10,8 @@
 #include <math.h>
 #include <limits.h>
 #include <functional>
+#include <vector>
+#include <numeric>
 using namespace std;
 #define DEBUGLEVEL 0
 #include "util.h"
@@ -169,6 +171,36 @@ class HashTable {
       }
       cout << endl;
     }
+    
+    // 1 if insert
+    // 0 if delete
+     
+    int fillDecisionTable(vector<int>* table, int m, int num_dels, int w) {
+      double fill = 0;
+      double load;
+      double rand_gen;
+      double total_weight;
+      int count = 0;
+      while (num_dels > 0) {
+        load = fill/m;
+        total_weight = (load + w*(1 - load));
+        rand_gen = genrand();
+        Debug2(cout << "iter: " << table.size() << " del_weight: " << load/total_weight << ", rng: " << rand_gen << " ");
+        if (rand_gen > load/total_weight) {
+          table->push_back(1);
+          fill++;
+          count++;
+          Debug2(cout << "insert" << endl);
+        } else {
+          table->push_back(0);
+          fill--;
+          num_dels--;
+          Debug2(cout << "delete" << endl);
+        }
+      }
+      return count;
+    }
+  
 };
 
 
@@ -190,40 +222,45 @@ void validate(HashTable& ht, int from, int to) {
 
 int main(int argc, char **argv) {
   int m = atoi(argv[1]); // table size
-  int n = atoi(argv[2]); // number of elements
-  int Kmax = atoi(argv[3]); // length of the experiment
+  int w = atoi(argv[2]); // relative weight for decision
+  int Kmax = atoi(argv[3]); // number of deletions / length of the exp
   int seed = atoi(argv[4]); // seed
+  size_t to_delete = 0;
+  size_t to_insert = 0;
   sgenrand(seed); 
 
-  cout << "#m=" << m << ", n=" << n << ", Kmax=" << Kmax << endl;
-
-  hashValueTable = new int[n+Kmax];
-  for (int i = 0;  i < n+Kmax;  i++) hashValueTable[i]=randomInt(m);
-
-  cout << "# m n K freeFraction successfull unsuccessfull" << endl;
 
   HashTable ht(m);
+  vector<int> decisionTable;
+  size_t total_inserts = ht.fillDecisionTable(&decisionTable, m, Kmax, w);
+  size_t total_iter = decisionTable.size();
+  cout << "# m=" << m << ", E[load]=(w/(1+w))=" << w/(1+w) << ", Kmax(sim. dels.)=" << Kmax << endl;
+  cout << "# total ops: " << total_iter << endl;
+  cout << "#m n K freeFraction successfull unsuccessfull load" << endl;
+  hashValueTable = new int[total_inserts];
+  for (int i = 0;  i < total_inserts;  i++) hashValueTable[i]=randomInt(m);
+  
   Debug2(validate(ht, 1, 0));
   Debug3(cout << "initialized" << endl);
   int i,j;
-  for (i = 0; i < n;  i++) {
-    ht.insert(i);
-    Debug3(ht.print());
-    Debug2(validate(ht, 0, i));
-  }
-
+  // for (i = 0; i < n;  i++) {
+  //   ht.insert(i);
+  //   Debug3(ht.print());
+  //   Debug2(validate(ht, 0, i));
+  // }
+  
   int K = 1;
   long long int count;
-  for (;  i < Kmax+n;  i++){
+  // double avg_fill = 0;
+  // size_t interval_length = 0;
+  for (i = 0;  i < total_iter;  i++){
     //ht.print();
-    // ht.remove(i-n); //GL: moved to end, bounds in summary statistics is wrong
-    // ht.insert(i); 
-    if (i-n == K || i-n == Kmax-1) {
-      cout << m << " " << n << " " << i-n << " ";
+    if (i == K || i == total_iter - 1) {
+      cout << m << " " << (double)(to_insert - to_delete)/m << " " << i << " ";
       cout << (double)(ht.empty-ht.m)/ht.m << " "; // fraction of free cells
       count = 0;
-      for (j=i-n; j < i; j++) count += ht.find(j); 
-      cout << (double)count/n << " "; // avg. successful search time
+      for (j=to_delete; j < to_insert; j++) count += ht.find(j); 
+      cout << (double)count/(to_insert - to_delete) << " "; // avg. successful search time
       count=0;
       for (int k=0; k<m;  k++) {
         // count++;
@@ -232,9 +269,20 @@ int main(int argc, char **argv) {
         for (; j < k && ht.t[j] != EMPTY; j++) count++;
       }
       cout <<  (double)count/m << endl; //  avg. failed search time
+      // cout << avg_fill/m << endl; // avg load excludig tombstones 
       K = K*2;
+      // interval_length = 0;
+      // avg_fill = 0;
     }
-    ht.remove(i-n); //GL: perform operations after summary statistics have been calculated
-    ht.insert(i); 
+    // interval_length++;
+    if (decisionTable[i] == 1) {
+      ht.insert(to_insert);
+      to_insert++;
+      // avg_fill += (to_insert - to_delete - avg_fill) / interval_length;
+    } else {
+      ht.remove(to_delete); //GL: perform operations after summary statistics have been calculated
+      to_delete++;
+    }
   }
+
 }
