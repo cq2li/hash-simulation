@@ -236,7 +236,7 @@ int main(int argc, char **argv) {
   size_t total_iter = decisionTable.size();
   cout << "# m=" << m << ", E[load]=(w/(1+w))=" << (double)w/(1+w) << ", Kmax(sim. dels.)=" << Kmax << endl;
   // cout << "# total ops: " << total_iter << endl;
-  cout << "#m n K freeFraction successfull unsuccessfull E[Load] w" << endl;
+  cout << "#m n K freeFraction successfull unsuccessfull E[Load] k" << endl;
   hashValueTable = new int[total_inserts];
   for (int i = 0;  i < total_inserts;  i++) hashValueTable[i]=randomInt(m);
   
@@ -256,7 +256,7 @@ int main(int argc, char **argv) {
       cout << (double)count/(to_insert - to_delete) << " "; // avg. successful search time
       count=0;
       for (int k=0; k<m;  k++) {
-        // count++;
+        count++;
         for (j=k;  ht.t[j] != EMPTY;  j++) count++;
         if (j == m) j = 0;
         for (; j < k && ht.t[j] != EMPTY; j++) count++;
