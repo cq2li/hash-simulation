@@ -1,1 +1,66 @@
 there is a bug with negative freeFraction when m is set too low
+
+I've modified the paper's code to fit our stochastic operations.
+I still need to solve for E[X] for the markov chain to show the average load is (k)/(k + 1)
+
+The original code modeled stable inserts and deletes (LRU).
+The average successful search was taken over all items in the hastable.
+The average unsuccesful search was taken over the length of all the runs, starting at each slot. A run ends upon reaching an empty slot.
+The averages are taken over intervals of powers of 2.
+
+The original setup is:
+m = Hashtable capacity
+n = slots occupied by an element
+K = the number of deletions/ how long the simulation goes on for
+EMPTY/E = free slots
+MARKED/M = tombstones
+E + M + n = m
+freeFractions = E/m
+load = n/m
+
+The summary statistics are the same after modifications.
+We added a weight k which controls the probability of insert/delete at a given load.
+
+The original code approximated wrap-around behaviour during searches which resulted in negative freeFractions at higher loads and lower capacity. This wasn't at problem at their highest load, which as 80%.
+
+I changed it so now it wraps around during searches. The plot below shows matching figures to the paper first, changing wrap-around, and implementing stochastic inserts/deletes.
+
+[Unsuc_freeFrac_rec.png]
+
+I ran the simulations at slightly less than 17Miterations. For comparison the original ran them at 80M. For lower ks, the search costs become stable much sooner than 80M (and less than 17M). Some ks are stil running (19, 20, 21, 44, 99). Some are in log scale.
+
+[AvgLoad_ndeletes_plot.png]
+
+The plot below is the log cost of average unsuccessful searches as the simulation goes on. It is as the paper suggests, the unsuccessful search plateaus.
+
+[Unsuc_ndelete_plot.png]
+
+The log scaled y at the last iteration (assuming its in a steady state) looks like the plateaus are on the order of O(a^k). Since the log scaled graph is a straight line. I was expecting O(k^2). This might be explained by the fact that k doesn't include tombstones so for example with k = 4, load is 80% but actually, tombestones are 18% so the actual load is something like 98% and x is more like 50.
+
+[Unsuc_w_plot.png]
+
+The algorithm seems to still run into issues at higher loads because tombstones are not being cleared out. For higher ks, I have seen results where tombstones clog the table and cause unsuccessful searches to equal to m. This causes the simulations to take forever.
+
+[freeFrac_ndeletes_plot.png]
+
+[Avgtombstones_ndeletes_plot.png]
+
+Here is a plot comparing unsuccessful search cost and free Fraction. 
+[Unsuc_freeFrac_plot.png]
+
+I was looking for an search cost to be a reciprocal of free fraction, something like unsuccessful search Cost = c/(1/x)^2 = cx^2. I think this shows it? It is 1/sqrt(unsuccessful search cost) plotted against freeFrac and it looks decently linear. 
+[Unsuc_freeFrac_nonlog_plot.png]
+
+
+Successful searches cost relatively low.
+
+[Suc_ndelete_plot.png]
+
+weina:
+Could you also calculate the time average of n/m over the last 1/10 of the iterations and list these average values?  I just wanted to confirm that E[n]/m is indeed 1 - 1/(k+1).
+
+I realized that the Bender, Kuszmaul, Kuszmaul paper analyzed the insertion cost, not the search cost.  Could you also plot the insertion cost and see how it depends on k?
+
+
+
+
