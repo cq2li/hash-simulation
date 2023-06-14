@@ -57,26 +57,37 @@ class HashTable {
     ~HashTable() { delete [] t; }
 
     // insert an element with key x
-    void insert(int x) {
+    //  returns insertion cost
+    int insert(int x) {
       int hx = ::hash(x, m);
       int search_max = m; // GL: cap search in wrap-around
+      int wrap = 0;
       full++; // GL: True under stable load
-      for (int i = hx; search_max > 0 ;i++) {
+      int i;
+      for (i = hx; search_max > 0 ;i++) {
         if (t[i] == EMPTY) {
           t[i] = x;
           empty--;
-          return;
+          break;
         }
         if (t[i] == MARKED) {
           t[i] = x;
-          return;
+          break;
         }
         // GL
         search_max--;
-        if (i == m - 1) i = -1;
-        // GL
-
-      } 
+        if (i == m - 1) {
+          i = -1;
+          if (wrap == 0) wrap = m - hx;
+        }
+        //GL
+      }
+      return m - search_max + 1;
+      // if (wrap == 0) {
+      //   return i - hx + 1;
+      // } else {
+      //   return i + wrap + 1;
+      // }
     }
 
     void remove(int x) {
@@ -222,7 +233,7 @@ void validate(HashTable& ht, int from, int to) {
 
 int main(int argc, char **argv) {
   int m = atoi(argv[1]); // table size
-  int w = atoi(argv[2]); // relative weight for decision
+  int w = atoi(argv[2]); // relative weight for decision aka k
   int Kmax = atoi(argv[3]); // number of deletions / length of the exp
   int seed = atoi(argv[4]); // seed
   size_t to_delete = 0;
@@ -234,9 +245,9 @@ int main(int argc, char **argv) {
   vector<int> decisionTable;
   size_t total_inserts = ht.fillDecisionTable(&decisionTable, m, Kmax, w);
   size_t total_iter = decisionTable.size();
-  cout << "# m=" << m << ", E[load]=(w/(1+w))=" << (double)w/(1+w) << ", Kmax(sim. dels.)=" << Kmax << endl;
+  cout << "# m=" << m << ", E[load]=(k/(1+k))=" << (double)w/(1+w) << ", Kmax(sim. dels.)=" << Kmax << endl;
   // cout << "# total ops: " << total_iter << endl;
-  cout << "#m n K freeFraction successfull unsuccessfull E[Load] k" << endl;
+  cout << "#m n K freeFraction successful-search unsuccessful-search timeavg-insertion timeavg-load k" << endl;
   hashValueTable = new int[total_inserts];
   for (int i = 0;  i < total_inserts;  i++) hashValueTable[i]=randomInt(m);
   
@@ -246,31 +257,50 @@ int main(int argc, char **argv) {
   
   int K = 1;
   long long int count;
+  long long int insert_cost = 0;
+  long long int num_inserts = 0;
+  long long int timeavg_load = 0;
+
+  int final_decile = total_iter - (int)(0.9 * total_iter);
+  int last_i = 0;
   for (i = 0;  i < total_iter;  i++){
-    //ht.print();
-    if (to_delete == K || i == total_iter - 1) {
+    if (to_delete == K || i == total_iter - 1) {      
       cout << m << " " << (double)(to_insert - to_delete)/m << " " << to_delete << " ";
       cout << (double)(ht.empty-ht.m)/ht.m << " "; // fraction of free cells
+      
       count = 0;
       for (j=to_delete; j < to_insert; j++) count += ht.find(j); 
       cout << (double)count/(to_insert - to_delete) << " "; // avg. successful search time
+       
       count=0;
       for (int k=0; k<m;  k++) {
         count++;
         for (j=k;  ht.t[j] != EMPTY;  j++) count++;
-        if (j == m) j = 0;
+        if (j == m) j = 0; // #wrap around
         for (; j < k && ht.t[j] != EMPTY; j++) count++;
       }
-      cout <<  (double)count/m << " "; //  avg. failed search time
-      cout <<  (double)w/(1+w) << " " << w << endl; //  avg. failed search time
+      cout << (double)count/m << " "; //  avg. failed search
+      cout << (double)insert_cost/num_inserts << " ";// avg insert cost
+      cout << (i == total_iter - 1 ? (double)(timeavg_load)/m/final_decile : 0) << " "; //  time avg load
+      cout << w << endl;// k
+
       K = K*2;
+      insert_cost = 0;
+      num_inserts = 0;
+      last_i = i;
     }
     if (decisionTable[i] == 1) {
-      ht.insert(to_insert);
+      insert_cost += ht.insert(to_insert);
+      num_inserts++;
       to_insert++;
     } else {
       ht.remove(to_delete); //GL: perform operations after summary statistics have been calculated
       to_delete++;
+    }
+
+    // track time average over the last 1/10 iterations
+    if (i > (int)(0.9 * total_iter)) {
+      timeavg_load += (to_insert - to_delete);
     }
   }
 
