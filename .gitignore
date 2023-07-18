@@ -4,3 +4,4 @@
 notes
 rec.sh
 *.png
+!Makefile
